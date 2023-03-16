@@ -145,7 +145,10 @@ defmodule LokiLogger do
 
     # TODO: replace with async http call
     Task.start_link(fn ->
-      case HTTPoison.post("#{loki_host}/api/prom/push", bin_push_request, http_headers) do
+      case HTTPoison.post("#{loki_host}/api/prom/push", bin_push_request, http_headers,
+             timeout: :infinity,
+             recv_timeout: :infinity
+           ) do
         {:ok, %HTTPoison.Response{status_code: 204}} ->
           # expected
           :noop
