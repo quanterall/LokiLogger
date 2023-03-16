@@ -144,27 +144,29 @@ defmodule LokiLogger do
     ]
 
     # TODO: replace with async http call
-    case HTTPoison.post("#{loki_host}/api/prom/push", bin_push_request, http_headers) do
-      {:ok, %HTTPoison.Response{status_code: 204}} ->
-        # expected
-        :noop
+    Task.start_link(fn ->
+      case HTTPoison.post("#{loki_host}/api/prom/push", bin_push_request, http_headers) do
+        {:ok, %HTTPoison.Response{status_code: 204}} ->
+          # expected
+          :noop
 
-      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} ->
-        IO.puts(
-          inspect(
-            output
-            |> List.keysort(1)
-            |> Enum.reverse(),
-            pretty: true
+        {:ok, %HTTPoison.Response{status_code: status_code, body: body}} ->
+          IO.puts(
+            inspect(
+              output
+              |> List.keysort(1)
+              |> Enum.reverse(),
+              pretty: true
+            )
           )
-        )
 
-        raise "unexpected status code from loki backend #{status_code}" <>
-                Exception.format_exit(body)
+          raise "unexpected status code from loki backend #{status_code}" <>
+                  Exception.format_exit(body)
 
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        raise "http error from loki backend " <> Exception.format_exit(reason)
-    end
+        {:error, %HTTPoison.Error{reason: reason}} ->
+          raise "http error from loki backend " <> Exception.format_exit(reason)
+      end
+    end)
   end
 
   defp generate_bin_push_request(loki_labels, output) do
